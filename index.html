@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bhavesh Srihan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Bhavesh Srihan, machine learning engineer building real-time speech AI for Indian languages: speech-to-speech translation, inference optimisation and production serving.">
+<meta property="og:title" content="Bhavesh Srihan · Machine Learning Engineer, Real-Time Speech AI">
+<meta property="og:description" content="Real-time speech-to-speech translation, TensorRT and Triton inference optimisation, and voice agents for Indian languages on BHASHINI.">
+<meta property="og:type" content="profile">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one reading column. The hero is a live signal: speech in, translated speech out.
+   Each piece of work is a row on a timeline that draws itself as you scroll. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #101828;
+  --muted: #55617a;
+  --line: #dbe1ea;
+  --accent: #0c66a3;
+  --accent-2: #3aa3a0;
+  --accent-soft: #e2eef8;
+  --prod: #b3bdcc;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b111d; --surface: #121a2b; --ink: #e6ebf4; --muted: #9ba7bd; --line: #233049;
+    --accent: #62b6ea; --accent-2: #5fd3c6; --accent-soft: #15304a; --prod: #475470;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b111d; --surface: #121a2b; --ink: #e6ebf4; --muted: #9ba7bd; --line: #233049;
+  --accent: #62b6ea; --accent-2: #5fd3c6; --accent-soft: #15304a; --prod: #475470;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 16px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: clip;
+  transition: background-color .4s ease, color .4s ease;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
+}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+h1, h2, h3, h4, h5 { font-family: var(--display); line-height: 1.15; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+ul { margin: 0; padding: 0; }
+strong { font-weight: 600; color: var(--ink); }
+::selection { background: var(--accent); color: var(--surface); }
+
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.label { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* scroll progress */
+.progress {
+  position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); height: 3px; z-index: 20;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transform-origin: 0 50%; transform: scaleX(0);
+}
+
+/* header */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(10px) saturate(1.4); -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  border-bottom: 1px solid transparent; transition: border-color .3s ease, background-color .4s ease;
+}
+.top.scrolled { border-bottom-color: var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font: 700 17px/1 var(--display); color: var(--ink); text-decoration: none; white-space: nowrap; }
+.brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+.nav { display: flex; gap: 22px; }
+.nav a { position: relative; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; padding-block: 4px; transition: color .25s ease; }
+.nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .35s var(--ease); }
+.nav a:hover, .nav a.active { color: var(--ink); }
+.nav a.active::after, .nav a:hover::after { transform: scaleX(1); }
+.top-right { display: flex; gap: 8px; align-items: center; }
+.theme {
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); cursor: pointer; display: grid; place-items: center; transition: transform .3s var(--ease), border-color .2s;
+}
+.theme:hover { border-color: var(--accent); transform: rotate(20deg); }
+.theme svg { width: 18px; height: 18px; }
+.theme .moon { display: none; }
+:root[data-theme="dark"] .theme .sun { display: none; }
+:root[data-theme="dark"] .theme .moon { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme .sun { display: none; }
+  :root:not([data-theme="light"]) .theme .moon { display: block; }
+}
+
+/* buttons */
+.btn {
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 8px; font: 600 14px/1 var(--body); text-decoration: none;
+  border: 1px solid var(--line); color: var(--ink); background: var(--surface); cursor: pointer;
+  transition: border-color .25s ease, translate .3s var(--ease), box-shadow .3s ease;
+}
+.btn:hover { border-color: var(--accent); translate: 0 -2px; box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--accent) 70%, transparent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.primary::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--surface) 45%, transparent) 50%, transparent 70%);
+}
+.btn.primary:hover::after { transform: translateX(120%); transition: transform .8s var(--ease); }
+.btn .arr { transition: transform .3s var(--ease); }
+.btn:hover .arr { transform: translateX(3px); }
+
+/* hero */
+.hero { position: relative; isolation: isolate; overflow: hidden; }
+.hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -2; opacity: .6;
+  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 20%, transparent 75%);
+}
+.blob { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); opacity: .35; pointer-events: none; }
+.blob.a { width: 420px; height: 420px; background: var(--accent); top: -140px; right: -80px; }
+.blob.b { width: 340px; height: 340px; background: var(--accent-2); bottom: -160px; left: -100px; opacity: .22; }
+.hero .wrap { padding-block: 64px 40px; display: grid; gap: 26px; }
+.hero h1 { font-size: clamp(46px, 9vw, 96px); font-weight: 800; letter-spacing: -.035em; line-height: 1; }
+.hero h1 .ch { display: inline-block; }
+.say { font: 500 clamp(20px, 2.8vw, 28px)/1.3 var(--display); color: var(--muted); max-width: 34ch; }
+.swap { display: inline-grid; vertical-align: baseline; padding-inline: 2px; }
+.swap span { grid-area: 1 / 1; color: var(--accent); font-weight: 700; transition: transform .55s var(--ease), opacity .55s var(--ease); }
+.swap span.out { transform: translateY(-100%); opacity: 0; }
+.swap span.pre { transform: translateY(100%); opacity: 0; transition: none; }
+.swap.to span { color: var(--accent-2); }
+
+.signal { position: relative; height: 150px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 70%, transparent); overflow: hidden; }
+.signal canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.signal .tag { position: absolute; top: 12px; font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.signal .tag.l { left: 14px; }
+.signal .tag.r { right: 14px; color: var(--accent); }
+.signal .core { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font: 600 11px/1 var(--mono); color: var(--ink); white-space: nowrap; }
+.signal .live { position: absolute; right: 14px; bottom: 12px; display: inline-flex; gap: 6px; align-items: center; font: 600 11px/1 var(--mono); color: var(--muted); }
+.signal .live i { width: 7px; height: 7px; border-radius: 50%; background: #e5484d; }
+
+.lede { max-width: 66ch; color: var(--muted); font-size: 17px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.email { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--mono); color: var(--muted); }
+.email span { user-select: all; }
+.email button { font: 600 12px/1 var(--body); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; transition: color .2s, border-color .2s; }
+.email button:hover { color: var(--ink); border-color: var(--accent); }
+
+/* marquee */
+.marquee { border-block: 1px solid var(--line); overflow: hidden; background: var(--surface); }
+.marquee .track { display: flex; width: max-content; }
+.marquee ul { display: flex; list-style: none; gap: 0; padding-block: 14px; }
+.marquee li { font: 600 13px/1 var(--mono); color: var(--muted); padding-inline: 22px; white-space: nowrap; display: inline-flex; align-items: center; gap: 22px; }
+.marquee li::after { content: "◆"; font-size: 8px; color: var(--accent); }
+.marquee:hover .track { animation-play-state: paused; }
+
+/* impact */
+.impact .wrap { padding-block: 56px; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile {
+  position: relative; overflow: hidden; background: var(--surface); padding: 24px 22px; display: grid; gap: 8px; align-content: start;
+  border: 1px solid var(--line); border-radius: 12px; transition: translate .35s var(--ease), border-color .3s ease;
+}
+.tile:hover { translate: 0 -4px; border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.tile .n { font: 700 clamp(32px, 4.2vw, 44px)/1 var(--display); color: var(--accent); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.tile p { color: var(--muted); font-size: 14px; line-height: 1.45; }
+.spot::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s ease;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+}
+.spot:hover::before { opacity: 1; }
+
+/* sections */
+section.block { border-top: 1px solid var(--line); }
+section.block > .wrap { padding-block: 64px; display: grid; gap: 36px; }
+.sec-head { display: grid; gap: 8px; }
+.sec-head h2 { font-size: clamp(30px, 4.4vw, 44px); font-weight: 700; letter-spacing: -.025em; }
+
+/* timeline */
+.job { position: relative; display: grid; gap: 24px; padding-left: 32px; }
+.job::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: 0; width: 2px; background: var(--line); border-radius: 2px; }
+.job .line { position: absolute; left: 6px; top: 8px; bottom: 0; width: 2px; border-radius: 2px; background: linear-gradient(var(--accent), var(--accent-2)); transform-origin: top; }
+.job-head { position: relative; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
+.job-head::before { content: ""; position: absolute; left: -32px; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 3px solid var(--accent); }
+.job-head h3 { font-size: 26px; font-weight: 700; }
+.job-head p { color: var(--muted); margin-top: 4px; }
+.when { font: 600 13px/1 var(--mono); color: var(--accent); white-space: nowrap; }
+
+.work { position: relative; display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px 40px; padding-top: 28px; border-top: 1px dashed var(--line); }
+.work::before { content: ""; position: absolute; left: -30px; top: 36px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-2); }
+.work-label { display: grid; gap: 10px; align-content: start; }
+.work-label h4 { font-size: 22px; font-weight: 700; }
+.work-label p { color: var(--muted); font-size: 14px; line-height: 1.45; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; }
+.tags li { font: 500 12px/1 var(--mono); padding: 6px 9px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); border: 1px solid transparent; transition: border-color .2s ease, translate .25s var(--ease); }
+.tags li:hover { border-color: var(--accent); translate: 0 -2px; }
+.work-body { display: grid; gap: 20px; min-width: 0; }
+.points { list-style: none; display: grid; gap: 10px; }
+.points li { position: relative; padding-left: 18px; color: var(--muted); }
+.points li::before { content: ""; position: absolute; left: 0; top: .7em; width: 8px; height: 2px; background: var(--accent); transition: width .3s var(--ease); }
+.points li:hover::before { width: 12px; }
+
+/* live pipeline */
+.pipe-box { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.pipe-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pipe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; counter-reset: step; }
+.stage {
+  position: relative; display: grid; gap: 4px; align-content: start; padding: 12px 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); counter-increment: step;
+  transition: border-color .35s ease, box-shadow .35s ease, background-color .35s ease;
+}
+.stage b { font: 600 13px/1.2 var(--mono); color: var(--ink); }
+.stage b::before { content: counter(step) "  "; color: var(--accent); }
+.stage span { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.stage.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.flow { position: relative; height: 4px; border-radius: 4px; background: var(--line); }
+.flow i { position: absolute; top: 50%; left: 0; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); transition: left .6s var(--ease); }
+.flow .fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width .6s var(--ease); }
+.listeners { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.listeners em { font-style: normal; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); transition: border-color .3s ease, background-color .3s ease, translate .3s var(--ease); }
+.listeners.on em { border-color: var(--accent); background: var(--accent-soft); }
+.listeners.on em:nth-of-type(odd) { translate: 0 -2px; }
+
+/* before / after */
+.cmp { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.cmp-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: center; }
+.cmp-top h5 { font-size: 15px; font-weight: 600; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--prod); }
+.legend .o i { background: var(--accent); }
+.row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; }
+.row > span { font-size: 13px; color: var(--muted); line-height: 1.3; }
+.row > span small { display: block; font-size: 11px; }
+.bars2 { display: grid; gap: 4px; min-width: 0; }
+.bl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bl i { height: 12px; border-radius: 3px; background: var(--prod); flex: none; min-width: 3px; width: var(--w); transition: width 1.3s var(--ease); }
+.bl.o i { background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+.bl b { font: 600 12px/1 var(--mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; transition: opacity .5s ease .6s; }
+.bl.o b { color: var(--ink); }
+.cmp.wait .bl i { width: 0; }
+.cmp.wait .bl b { opacity: 0; }
+.cmp-note { font-size: 12px; color: var(--muted); }
+
+.deltas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.delta { position: relative; overflow: hidden; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); display: grid; gap: 4px; background: var(--surface); transition: translate .3s var(--ease), border-color .3s ease; }
+.delta:hover { translate: 0 -3px; border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.delta b { font: 600 18px/1.2 var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.delta span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* projects */
+.projects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; perspective: 1000px; }
+.proj { min-width: 0; }
+.proj .card {
+  position: relative; overflow: hidden; height: 100%; display: grid; gap: 12px; align-content: start; padding: 26px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .4s var(--ease), border-color .3s ease, box-shadow .4s ease;
+}
+.proj .card:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); box-shadow: 0 24px 50px -30px color-mix(in srgb, var(--accent) 60%, transparent); }
+.proj h3 { font-size: 22px; font-weight: 700; }
+.proj p { color: var(--muted); }
+
+/* skills */
+.skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px; }
+.skill { display: grid; gap: 10px; align-content: start; }
+.skill h3 { font-size: 16px; font-weight: 600; }
+
+/* education + awards */
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+.two h3 { font-size: 21px; font-weight: 700; margin: 12px 0 6px; }
+.two p { color: var(--muted); }
+
+footer { border-top: 1px solid var(--line); }
+footer .wrap { padding-block: 48px 64px; display: grid; gap: 24px; }
+.sign { font: 800 clamp(34px, 6vw, 64px)/1.05 var(--display); letter-spacing: -.03em; }
+.sign a { color: var(--accent); text-decoration: none; background: linear-gradient(var(--accent), var(--accent)) 0 100% / 0 3px no-repeat; transition: background-size .5s var(--ease); }
+.sign a:hover { background-size: 100% 3px; }
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; }
+.foot p { color: var(--muted); font-size: 14px; }
+
+/* ---------- motion ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .top { animation: drop .7s var(--ease) both; }
+  .hero .intro > * { animation: rise .9s var(--ease) both; animation-delay: calc(var(--d, 0) * 90ms + 250ms); }
+  .hero h1 .ch { animation: letter .9s var(--ease) both; animation-delay: calc(var(--i) * 35ms + 150ms); }
+  .blob.a { animation: drift 16s ease-in-out infinite alternate; }
+  .blob.b { animation: drift 20s ease-in-out infinite alternate-reverse; }
+  .brand .dot { animation: ping 2.4s ease-out infinite; }
+  .signal .live i { animation: blink 1.4s ease-in-out infinite; }
+  .marquee .track { animation: scroll 45s linear infinite; }
+
+  @supports (animation-timeline: view()) {
+    .reveal { animation: up linear both; animation-timeline: view(); animation-range: entry 0% cover 28%; }
+    .reveal-l { animation: fromleft linear both; animation-timeline: view(); animation-range: entry 0% cover 28%; }
+    .sec-head h2 { animation: focus linear both; animation-timeline: view(); animation-range: entry 10% cover 30%; }
+    .job .line { animation: grow linear both; animation-timeline: view(); animation-range: cover 0% cover 70%; }
+    .work::before { animation: pop linear both; animation-timeline: view(); animation-range: entry 20% cover 25%; }
+  }
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .progress { animation: grow-x linear both; animation-timeline: scroll(root); }
+  }
+}
+@keyframes drop { from { transform: translateY(-100%); opacity: 0; } }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } }
+@keyframes letter { from { transform: translateY(.55em) rotate(6deg); opacity: 0; filter: blur(6px); } }
+@keyframes drift { to { transform: translate(-80px, 60px) scale(1.15); } }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 80%, 100% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes blink { 50% { opacity: .25; } }
+@keyframes scroll { to { transform: translateX(-50%); } }
+@keyframes up { from { opacity: 0; transform: translateY(48px) scale(.98); } }
+@keyframes fromleft { from { opacity: 0; transform: translateX(-36px); } }
+@keyframes focus { from { opacity: 0; filter: blur(8px); letter-spacing: .02em; } }
+@keyframes grow { from { transform: scaleY(0); } }
+@keyframes grow-x { to { transform: scaleX(1); } }
+@keyframes pop { from { transform: scale(0); } }
+
+@media (max-width: 860px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nav { display: none; }
+}
+@media (max-width: 620px) {
+  .projects, .skills, .two, .deltas { grid-template-columns: minmax(0, 1fr); }
+  .row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .hero .wrap { padding-block: 40px 32px; }
+  .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .signal { height: 120px; }
+  .signal .live { display: none; }
+  .job { padding-left: 24px; }
+  .job-head::before { left: -24px; }
+  .work::before { left: -22px; }
+  .top .btn.primary { display: none; }
+}
+@media (max-width: 400px) {
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="top" id="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="dot"></span>Bhavesh Srihan</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#impact">Impact</a>
+      <a href="#experience">Experience</a>
+      <a href="#projects">Projects</a>
+      <a href="#skills">Skills</a>
+      <a href="#education">Education</a>
+    </nav>
+    <div class="top-right">
+      <button class="theme" type="button" id="theme" aria-label="Switch light or dark theme">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <a class="btn primary" href="Bhavesh_Srihan_Resume.pdf" target="_blank" rel="noopener">Résumé <span class="arr">→</span></a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="blob a" aria-hidden="true"></div>
+    <div class="blob b" aria-hidden="true"></div>
+    <div class="wrap intro">
+      <p class="label" style="--d:0">Machine Learning Engineer · BHASHINI · Delhi, India</p>
+      <h1 id="name" style="--d:0">Bhavesh Srihan</h1>
+      <p class="say" style="--d:2">I build real-time speech AI, so you can speak in
+        <span class="swap" id="from"><span>हिन्दी</span></span> and be heard in
+        <span class="swap to" id="to"><span>தமிழ்</span></span>.</p>
+      <div class="signal" style="--d:3" aria-label="Animation: speech comes in on the left, passes through speech recognition, translation and speech synthesis, and leaves translated on the right." role="img">
+        <canvas id="wave"></canvas>
+        <span class="tag l">Speech in</span>
+        <span class="tag r">Translated speech out</span>
+        <span class="core">ASR → NMT → TTS</span>
+        <span class="live"><i></i>real time</span>
+      </div>
+      <p class="lede" style="--d:4">I work on <strong>BHASHINI</strong>, the Government of India's language technology programme. I took <strong>Vaanianuvaad</strong>, a video conferencing platform with live speech-to-speech translation, to production; rebuilt Indic TTS serving on NVIDIA Triton and TensorRT; lowered ASR word error rate with language-model fusion; and built <strong>Janvaani</strong>, a phone-based conversational agent for the public.</p>
+      <div class="cta" style="--d:5">
+        <a class="btn primary" href="Bhavesh_Srihan_Resume.pdf" target="_blank" rel="noopener">View résumé <span class="arr">→</span></a>
+        <a class="btn" href="https://linkedin.com/in/bhavesh-srihan" target="_blank" rel="noopener">LinkedIn <span class="arr">↗</span></a>
+        <a class="btn" href="https://github.com/bsrihan11" target="_blank" rel="noopener">GitHub <span class="arr">↗</span></a>
+        <span class="email"><span id="email">bhavesh.srihan5@gmail.com</span><button type="button" id="copy-email">Copy</button></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-label="Technologies">
+    <div class="track">
+      <ul><li>LiveKit SFU</li><li>WebRTC</li><li>NVIDIA Triton</li><li>TensorRT FP16</li><li>CUDA graphs</li><li>PyTorch</li><li>HuBERT</li><li>FastPitch</li><li>HiFi-GAN</li><li>LangGraph</li><li>RAG</li><li>FastAPI</li><li>gRPC</li><li>Kubernetes</li><li>Redis</li><li>Prometheus</li></ul>
+      <ul aria-hidden="true"><li>LiveKit SFU</li><li>WebRTC</li><li>NVIDIA Triton</li><li>TensorRT FP16</li><li>CUDA graphs</li><li>PyTorch</li><li>HuBERT</li><li>FastPitch</li><li>HiFi-GAN</li><li>LangGraph</li><li>RAG</li><li>FastAPI</li><li>gRPC</li><li>Kubernetes</li><li>Redis</li><li>Prometheus</li></ul>
+    </div>
+  </div>
+
+  <section class="impact" id="impact" aria-label="Impact in numbers">
+    <div class="wrap">
+      <div class="tiles">
+        <div class="tile spot reveal"><span class="n" data-count>~47×</span><p>more concurrent users on Indic TTS than the production deployment</p></div>
+        <div class="tile spot reveal"><span class="n" data-count>~43×</span><p>TTS throughput: 101.3 vs 2.4 requests per second</p></div>
+        <div class="tile spot reveal"><span class="n" data-count>−71%</span><p>single-user TTS latency at p50: 93 ms vs 324 ms</p></div>
+        <div class="tile spot reveal"><span class="n" data-count>−15%</span><p>ASR word error rate through language-model fusion</p></div>
+        <div class="tile spot reveal"><span class="n" data-count>−62%</span><p>fragmented sentences in live transcripts</p></div>
+        <div class="tile spot reveal"><span class="n" data-count>10+</span><p>Indian languages streamed live for national broadcasts</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="experience">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="label">Experience</p>
+        <h2>Speech AI in production</h2>
+      </div>
+
+      <article class="job">
+        <span class="line" aria-hidden="true"></span>
+        <div class="job-head reveal">
+          <div>
+            <h3>Associate Software Engineer</h3>
+            <p>Tarento Technologies · BHASHINI Project, Govt. of India · Delhi</p>
+          </div>
+          <span class="when">Jan 2026 – Present</span>
+        </div>
+
+        <div class="work">
+          <div class="work-label reveal-l">
+            <h4>Vaanianuvaad</h4>
+            <p>SFU-based video conferencing with real-time speech-to-speech translation. Used for live interpretation in UPSC interviews.</p>
+            <ul class="tags"><li>LiveKit SFU</li><li>WebRTC</li><li>FastAPI</li><li>WebSockets</li><li>gRPC</li><li>Kubernetes</li><li>Redis</li></ul>
+          </div>
+          <div class="work-body">
+            <div class="pipe-box reveal" id="pipebox">
+              <div class="pipe-top"><span class="label">One spoken turn, live</span><span class="label" id="pipe-step">1 / 6</span></div>
+              <div class="pipe" role="img" aria-label="Pipeline: a speaker's WebRTC audio goes through the LiveKit SFU into streaming ASR, NMT and TTS, and comes back as one translated audio track per language.">
+                <div class="stage on"><b>Speaker mic</b><span>WebRTC track</span></div>
+                <div class="stage"><b>LiveKit SFU</b><span>video + audio routing</span></div>
+                <div class="stage"><b>Streaming ASR</b><span>turn detection</span></div>
+                <div class="stage"><b>NMT</b><span>per listener language</span></div>
+                <div class="stage"><b>TTS</b><span>one per language + voice</span></div>
+                <div class="stage"><b>Per-language tracks</b><span>back through the SFU</span></div>
+              </div>
+              <div class="flow" aria-hidden="true"><span class="fill"></span><i></i></div>
+              <div class="listeners" id="listeners"><span>Each listener hears:</span><em lang="hi">हिन्दी</em><em>English</em><em lang="ta">தமிழ்</em><em lang="bn">বাংলা</em><em lang="mr">मराठी</em><em>…</em></div>
+            </div>
+            <ul class="points reveal">
+              <li>Took Vaanianuvaad to production as a <strong>fully featured video conferencing application built on an SFU (LiveKit / WebRTC)</strong>. Every participant speaks their own language and hears every other speaker translated into theirs, with video, live captions and transcripts.</li>
+              <li>Connected the media server to the translation pipeline: each speaker's WebRTC audio feeds streaming ASR → NMT → TTS, and translated speech goes back as <strong>per-language audio tracks</strong>. One synthesis per language and voice is shared by every listener of that language.</li>
+              <li>Designed the shared real-time room engine behind three products, <strong>multilingual meetings, one-to-many live broadcasts and live interpretation</strong>. Model calls run concurrently but are emitted in spoken order, speakers are ordered by when they stopped talking, and every listener gets lossless delivery with captions ahead of audio.</li>
+              <li>Designed turn detection and sentence formation over streaming ASR (LocalAgreement-2 with a streaming segmenter) that cut fragmented and broken sentences in live transcripts by <strong>62%</strong>.</li>
+              <li>Built meeting features end to end: voice cloning so translations keep the speaker's voice, continuous language detection, hand raise and host mute, LLM-generated minutes, and Sahayak, an in-app RAG help assistant.</li>
+              <li>Built the live translation pipeline behind BHASHINI's multilingual YouTube streams of the Prime Minister's <strong>Mann Ki Baat</strong> and other national programmes, streaming each address live in <strong>10+ Indian languages</strong>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="work">
+          <div class="work-label reveal-l">
+            <h4>Inference optimisation</h4>
+            <p>Model serving for BHASHINI's production speech models on NVIDIA Triton.</p>
+            <ul class="tags"><li>Triton</li><li>TensorRT FP16</li><li>CUDA graphs</li><li>Dynamic batching</li><li>PyAV</li></ul>
+          </div>
+          <div class="work-body">
+            <div class="cmp reveal" id="cmp">
+              <div class="cmp-top">
+                <h5>Indic TTS (FastPitch + HiFi-GAN): optimised vs production</h5>
+                <div class="legend"><span><i></i>Production</span><span class="o"><i></i>Optimised</span></div>
+              </div>
+              <div class="row">
+                <span>Concurrent users<small>under 4% failures</small></span>
+                <div class="bars2">
+                  <div class="bl"><i style="--w:1.7%"></i><b>128 (fails)</b></div>
+                  <div class="bl o"><i style="--w:80%"></i><b>6,000+</b></div>
+                </div>
+              </div>
+              <div class="row">
+                <span>Max throughput<small>requests / second</small></span>
+                <div class="bars2">
+                  <div class="bl"><i style="--w:1.9%"></i><b>2.4</b></div>
+                  <div class="bl o"><i style="--w:80%"></i><b>101.3</b></div>
+                </div>
+              </div>
+              <div class="row">
+                <span>Latency p50<small>1 user, lower is better</small></span>
+                <div class="bars2">
+                  <div class="bl"><i style="--w:80%"></i><b>324 ms</b></div>
+                  <div class="bl o"><i style="--w:23%"></i><b>93 ms</b></div>
+                </div>
+              </div>
+              <div class="row">
+                <span>Latency p95<small>1 user, lower is better</small></span>
+                <div class="bars2">
+                  <div class="bl"><i style="--w:80%"></i><b>1,144 ms</b></div>
+                  <div class="bl o"><i style="--w:57.6%"></i><b>823 ms</b></div>
+                </div>
+              </div>
+              <p class="cmp-note">Each row is drawn to its own scale. Production stopped working at 128 concurrent users; the optimised service had no breaking point in the test.</p>
+            </div>
+            <ul class="points reveal">
+              <li>Converted FastPitch and HiFi-GAN into <strong>TensorRT engines</strong>, batched requests on the GPU, moved transliteration onto the GPU with <strong>CUDA graphs</strong> and a word cache, added startup warm-up, upgraded to Triton 26.10 / Python 3.12 and scaled to 15 front-end instances.</li>
+              <li>For Marathi and Gujarati, moved audio speed-up in-process with <strong>PyAV</strong> instead of starting an ffmpeg process per request, and ran 4 GPU batching instances instead of 2.</li>
+              <li>Served a production speech model as an <strong>FP16 TensorRT engine</strong> instead of PyTorch, batching up to 16 requests per GPU pass on 2 batching instances, with 32 front-end instances for parallel requests.</li>
+            </ul>
+            <div class="deltas">
+              <div class="delta spot reveal"><b>~40% more throughput</b><span>PyAV in-process audio speed-up, identical audio</span></div>
+              <div class="delta spot reveal"><b>GPU 33% → 71–74%</b><span>4 batching instances, ~20% more throughput</span></div>
+              <div class="delta spot reveal"><b>p50 39 → 32 ms</b><span>FP16 TensorRT engine vs PyTorch, 18% lower</span></div>
+              <div class="delta spot reveal"><b>GPU 70% → 97%</b><span>2 batching instances, ~18% more throughput</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="work">
+          <div class="work-label reveal-l">
+            <h4>Janvaani</h4>
+            <p>Phone telephony conversational agent for public use.</p>
+            <ul class="tags"><li>Telephony</li><li>LangGraph</li><li>RAG</li><li>Streaming ASR / TTS</li></ul>
+          </div>
+          <div class="work-body">
+            <ul class="points reveal">
+              <li>Built <strong>Janvaani</strong>, a phone telephony conversational AI agent for the public: citizens call in on an ordinary phone line and talk with the agent in their own language, with no app or internet needed.</li>
+              <li>Built its real-time call loop over telephony audio: streaming ASR on the call, VAD turn detection with barge-in, a <strong>LangGraph</strong> agent that retrieves from government documents and calls tools to answer the caller, and streaming TTS back to the caller, on self-hosted government GPU servers.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="work">
+          <div class="work-label reveal-l">
+            <h4>Speech models</h4>
+            <p>Accuracy and turn-taking for live voice pipelines.</p>
+            <ul class="tags"><li>PyTorch</li><li>LM fusion</li><li>Smart Turn v3</li></ul>
+          </div>
+          <div class="work-body">
+            <ul class="points reveal">
+              <li>Fused a small language model into the ASR decoder for joint rescoring, lowering <strong>word error rate by 15%</strong> against the production baseline.</li>
+              <li>Developed <strong>Indic Smart Turn</strong>, an audio-native end-of-turn detection model for Indian languages on the Smart Turn v3 architecture, so live voice pipelines can tell from the speech itself when a speaker has finished.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <article class="job">
+        <span class="line" aria-hidden="true"></span>
+        <div class="job-head reveal">
+          <div>
+            <h3>AI Backend Developer Intern</h3>
+            <p>Digital India BHASHINI Division, MeitY · Delhi</p>
+          </div>
+          <span class="when">Aug 2025 – Dec 2025</span>
+        </div>
+        <ul class="points reveal">
+          <li>Designed real-time speech-to-speech pipelines for Indian languages, chaining ASR, NMT and TTS over WebSockets for conversational and broadcast use.</li>
+          <li>Added VAD and noise suppression to the streaming ASR and TTS path, lowering end-to-end response latency.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="block" id="projects">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="label">Projects</p>
+        <h2>Research and side builds</h2>
+      </div>
+      <div class="projects">
+        <article class="proj reveal">
+          <div class="card spot tilt">
+            <p class="label">Open source · MIT</p>
+            <h3>Textless speech-to-speech translation, Hindi → English</h3>
+            <p>A direct speech-to-speech model with no text in the loop: HuBERT features quantised by k-means (k = 1000) into discrete units, a unit-to-unit Transformer encoder-decoder and a unit HiFi-GAN vocoder. Trained from scratch and benchmarked against SeamlessM4T-v2.</p>
+            <p>Built a parallel Hindi-English speech corpus by matching FLEURS utterances on shared FLoRes sentence IDs; length-bucketed unit extraction made preprocessing ~3× faster.</p>
+            <ul class="tags"><li>PyTorch</li><li>HuBERT</li><li>SpeechBrain</li><li>Hugging Face</li></ul>
+            <a href="https://github.com/bsrihan11/textless-s2st" target="_blank" rel="noopener">github.com/bsrihan11/textless-s2st ↗</a>
+          </div>
+        </article>
+        <article class="proj reveal">
+          <div class="card spot tilt">
+            <p class="label">Platform</p>
+            <h3>Vaani: conversational voice agent builder</h3>
+            <p>A no-code platform that compiles a persona, a knowledge base and a tool list into a multilingual LangGraph voice agent, with retrieval over uploaded documents and handoff to a human when confidence is low.</p>
+            <p>Full-duplex speech loop with streaming ASR, VAD turn detection, barge-in and incremental TTS, keeping perceived response latency under one second.</p>
+            <ul class="tags"><li>LangGraph</li><li>FastAPI</li><li>WebSockets</li><li>Redis</li></ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="skills">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="label">Skills</p>
+        <h2>Toolkit</h2>
+      </div>
+      <div class="skills">
+        <div class="skill reveal"><h3>Speech and deep learning</h3><ul class="tags"><li>PyTorch</li><li>Hugging Face</li><li>SpeechBrain</li><li>ASR</li><li>TTS (FastPitch, HiFi-GAN)</li><li>NMT</li><li>Speech-to-speech</li><li>HuBERT units</li><li>ECAPA-TDNN</li><li>IndicBERT</li><li>LM fusion</li><li>VAD</li><li>Turn detection</li><li>Voice cloning</li></ul></div>
+        <div class="skill reveal"><h3>Inference optimisation</h3><ul class="tags"><li>NVIDIA Triton</li><li>TensorRT FP16</li><li>Dynamic batching</li><li>Multi-instance GPU</li><li>CUDA graphs</li><li>Warm-up</li><li>Load testing</li></ul></div>
+        <div class="skill reveal"><h3>Real-time systems</h3><ul class="tags"><li>WebRTC</li><li>LiveKit SFU</li><li>WebSockets</li><li>gRPC</li><li>FastAPI</li><li>asyncio</li><li>Streaming audio</li></ul></div>
+        <div class="skill reveal"><h3>LLMs and agents</h3><ul class="tags"><li>LangChain</li><li>LangGraph</li><li>RAG</li><li>Tool calling</li><li>FAISS</li><li>ChromaDB</li></ul></div>
+        <div class="skill reveal"><h3>Infrastructure</h3><ul class="tags"><li>Docker</li><li>Kubernetes</li><li>Redis</li><li>Celery</li><li>Prometheus</li><li>MongoDB</li><li>PostgreSQL</li><li>Jenkins</li><li>AWS EC2 / S3</li><li>GPU servers</li></ul></div>
+        <div class="skill reveal"><h3>Programming</h3><ul class="tags"><li>Python</li><li>C</li><li>Java</li><li>JavaScript / TypeScript</li><li>SQL</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="education">
+    <div class="wrap">
+      <div class="two">
+        <div class="reveal">
+          <p class="label">Education</p>
+          <h3>Indian Institute of Technology Madras</h3>
+          <p>B.Sc. in Data Science and Programming · CGPA 8.47 / 10 · Apr 2025</p>
+          <p style="margin-top:8px">Deep Learning, Machine Learning, Linear Algebra, Statistics, Software Engineering, DBMS</p>
+        </div>
+        <div class="reveal">
+          <p class="label">Awards</p>
+          <ul class="points" style="margin-top:12px">
+            <li><strong>“Awesome Addition to the Team” Award</strong>, Tarento Technologies, for multilingual speech AI and real-time inference pipelines</li>
+            <li><strong>Customer Delight Award</strong>, Tarento Technologies</li>
+            <li><strong>Gold Medal</strong>, Delhi State Science Exhibition, for an innovation project</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p class="sign reveal">Building speech AI for India's languages? <a href="https://linkedin.com/in/bhavesh-srihan" target="_blank" rel="noopener">Let's talk.</a></p>
+    <div class="foot">
+      <p>Bhavesh Srihan · Delhi, India · Hindi (native), English (fluent) · bhavesh.srihan5@gmail.com</p>
+      <div class="cta">
+        <a class="btn" href="Bhavesh_Srihan_Resume.pdf" target="_blank" rel="noopener">Résumé (PDF)</a>
+        <a class="btn" href="Bhavesh_Srihan_Resume.docx">Résumé (Word)</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var root = document.documentElement;
+
+  function store(key, value) {
+    try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); } catch (e) { return null; }
+    return null;
+  }
+
+  /* theme toggle */
+  var saved = store("theme");
+  if (saved === "dark" || saved === "light") root.setAttribute("data-theme", saved);
+  document.getElementById("theme").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    store("theme", next);
+    readColors();
+  });
+
+  /* name: split into letters for the entrance */
+  var name = document.getElementById("name");
+  if (!reduce) {
+    var text = name.textContent, i = 0;
+    name.setAttribute("aria-label", text);
+    name.textContent = "";
+    text.split("").forEach(function (c) {
+      var s = document.createElement("span");
+      s.className = "ch";
+      s.setAttribute("aria-hidden", "true");
+      s.style.setProperty("--i", i++);
+      s.textContent = c === " " ? " " : c;
+      name.appendChild(s);
+    });
+  }
+
+  /* rotating language pair */
+  var pairs = [["हिन्दी", "தமிழ்"], ["मराठी", "English"], ["বাংলা", "ગુજરાતી"], ["English", "ಕನ್ನಡ"], ["ਪੰਜਾਬੀ", "తెలుగు"], ["ଓଡ଼ିଆ", "മലയാളം"]];
+  function swapTo(el, word) {
+    var old = el.querySelector("span:not(.out)");
+    var next = document.createElement("span");
+    next.className = "pre";
+    next.textContent = word;
+    el.appendChild(next);
+    void next.offsetWidth;
+    next.className = "";
+    if (old) {
+      old.className = "out";
+      setTimeout(function () { old.remove(); }, 600);
+    }
+  }
+  if (!reduce) {
+    var p = 0;
+    setInterval(function () {
+      if (document.hidden) return;
+      p = (p + 1) % pairs.length;
+      swapTo(document.getElementById("from"), pairs[p][0]);
+      setTimeout(function () { swapTo(document.getElementById("to"), pairs[p][1]); }, 180);
+    }, 2800);
+  }
+
+  /* header border + progress fallback */
+  var bar = document.getElementById("topbar");
+  var prog = document.getElementById("progress");
+  var cssProgress = window.CSS && CSS.supports && CSS.supports("animation-timeline: scroll()");
+  function onScroll() {
+    var y = window.scrollY;
+    bar.classList.toggle("scrolled", y > 8);
+    if (!cssProgress) {
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      prog.style.transform = "scaleX(" + (max > 0 ? Math.min(1, y / max) : 0) + ")";
+    }
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* active nav link */
+  var links = {};
+  document.querySelectorAll(".nav a").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var navIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting && links[e.target.id]) {
+          Object.keys(links).forEach(function (k) { links[k].classList.remove("active"); });
+          links[e.target.id].classList.add("active");
+        }
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Object.keys(links).forEach(function (id) { var s = document.getElementById(id); if (s) navIo.observe(s); });
+  }
+
+  /* run once when an element scrolls into view; content below the fold waits, the rest shows as is */
+  function whenSeen(el, start, prepare) {
+    if (reduce || !("IntersectionObserver" in window)) return;
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.9) { prepare(); requestAnimationFrame(function () { requestAnimationFrame(start); }); return; }
+    prepare();
+    var io = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) { io.disconnect(); start(); }
+    }, { threshold: 0.35 });
+    io.observe(el);
+  }
+
+  /* count-up numbers */
+  document.querySelectorAll("[data-count]").forEach(function (el) {
+    var final = el.textContent;
+    var m = final.match(/^([^\d]*)([\d.]+)(.*)$/);
+    if (!m) return;
+    var pre = m[1], target = parseFloat(m[2]), suf = m[3];
+    whenSeen(el, function () {
+      var t0 = performance.now(), dur = 1500;
+      (function tick(now) {
+        var k = Math.min(1, (now - t0) / dur);
+        var eased = 1 - Math.pow(1 - k, 4);
+        el.textContent = pre + Math.round(target * eased) + suf;
+        if (k < 1) requestAnimationFrame(tick); else el.textContent = final;
+      })(t0);
+    }, function () { el.textContent = pre + "0" + suf; });
+  });
+
+  /* chart bars grow */
+  var cmp = document.getElementById("cmp");
+  whenSeen(cmp, function () { cmp.classList.remove("wait"); }, function () { cmp.classList.add("wait"); });
+
+  /* live pipeline */
+  var stages = document.querySelectorAll(".stage");
+  var dot = document.querySelector(".flow i");
+  var fill = document.querySelector(".flow .fill");
+  var listeners = document.getElementById("listeners");
+  var stepLabel = document.getElementById("pipe-step");
+  var step = 0, pipeVisible = false;
+  function showStep(k) {
+    stages.forEach(function (s, j) { s.classList.toggle("on", j === k); });
+    var pct = ((k + 0.5) / stages.length) * 100;
+    dot.style.left = pct + "%";
+    fill.style.width = pct + "%";
+    listeners.classList.toggle("on", k === stages.length - 1);
+    stepLabel.textContent = (k + 1) + " / " + stages.length;
+  }
+  showStep(0);
+  if (!reduce) {
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (e) { pipeVisible = e[0].isIntersecting; }).observe(document.getElementById("pipebox"));
+    }
+    setInterval(function () {
+      if (!pipeVisible || document.hidden) return;
+      step = (step + 1) % (stages.length + 1);
+      if (step === stages.length) { dot.style.transition = "none"; fill.style.transition = "none"; showStep(0); step = 0;
+        void dot.offsetWidth; dot.style.transition = ""; fill.style.transition = ""; return; }
+      showStep(step);
+    }, 900);
+  }
+
+  /* spotlight + tilt */
+  document.querySelectorAll(".spot").forEach(function (el) {
+    el.addEventListener("pointermove", function (e) {
+      var r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      el.style.setProperty("--my", (e.clientY - r.top) + "px");
+      if (!reduce && el.classList.contains("tilt")) {
+        el.style.setProperty("--ry", (((e.clientX - r.left) / r.width) - 0.5) * 6 + "deg");
+        el.style.setProperty("--rx", (0.5 - ((e.clientY - r.top) / r.height)) * 6 + "deg");
+      }
+    });
+    el.addEventListener("pointerleave", function () { el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg"); });
+  });
+
+  /* copy email */
+  var btn = document.getElementById("copy-email");
+  var email = document.getElementById("email");
+  btn.addEventListener("click", function () {
+    function selectIt() {
+      var range = document.createRange();
+      range.selectNodeContents(email);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      btn.textContent = "Selected";
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(email.textContent).then(function () { btn.textContent = "Copied"; }, selectIt);
+    } else {
+      selectIt();
+    }
+  });
+
+  /* hero signal: speech bars flow in from the left, pass the model core, leave translated on the right */
+  var canvas = document.getElementById("wave");
+  var ctx = canvas.getContext("2d");
+  var colors = {};
+  function readColors() {
+    var cs = getComputedStyle(root);
+    colors.prod = cs.getPropertyValue("--prod").trim();
+    colors.accent = cs.getPropertyValue("--accent").trim();
+    colors.accent2 = cs.getPropertyValue("--accent-2").trim();
+  }
+  readColors();
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readColors);
+
+  var W = 0, H = 0, dpr = 1;
+  function size() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  size();
+  window.addEventListener("resize", size);
+
+  function speechAmp(u, seed) {
+    var syll = Math.pow(Math.abs(Math.sin(u * 0.045 + seed)), 1.6);
+    var word = 0.35 + 0.65 * Math.pow(Math.abs(Math.sin(u * 0.011 + seed * 1.7)), 0.7);
+    var grain = 0.75 + 0.25 * Math.sin(u * 0.37 + seed * 3.1);
+    return Math.max(0.06, syll * word * grain);
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    var mid = W / 2, cy = H / 2 - 6, gap = 6, bw = 3, speed = 70;
+    var coreR = Math.min(26, H * 0.18);
+    for (var x = 8; x < W - 8; x += gap) {
+      var d = Math.abs(x - mid);
+      if (d < coreR + 14) continue;
+      var left = x < mid;
+      var u = left ? (x - t * speed) : (x - t * speed * 1.08);
+      var a = speechAmp(u, left ? 0.3 : 2.2);
+      var edge = Math.min(1, x / 60, (W - x) / 60, (d - coreR - 14) / 50);
+      var h = Math.max(2, a * (H * 0.62));
+      ctx.globalAlpha = Math.max(0, edge) * (left ? 0.9 : 1);
+      ctx.fillStyle = left ? colors.prod : (x > mid + (W / 2) * 0.5 ? colors.accent : colors.accent2);
+      ctx.fillRect(x, cy - h / 2, bw, h);
+    }
+    ctx.globalAlpha = 1;
+    /* core with pulsing rings */
+    for (var r = 0; r < 3; r++) {
+      var ph = ((t * 0.6 + r / 3) % 1);
+      ctx.beginPath();
+      ctx.arc(mid, cy, coreR + ph * 30, 0, Math.PI * 2);
+      ctx.strokeStyle = colors.accent;
+      ctx.globalAlpha = (1 - ph) * 0.45;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(mid, cy, coreR, 0, Math.PI * 2);
+    var g = ctx.createRadialGradient(mid, cy, 2, mid, cy, coreR);
+    g.addColorStop(0, colors.accent2);
+    g.addColorStop(1, colors.accent);
+    ctx.fillStyle = g;
+    ctx.fill();
+    /* tiny spinning arcs inside the core */
+    ctx.save();
+    ctx.translate(mid, cy);
+    ctx.rotate(t * 1.4);
+    ctx.strokeStyle = "rgba(255,255,255,.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 0.55, 0, Math.PI * 1.2); ctx.stroke();
+    ctx.rotate(-t * 2.6);
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 0.3, 0, Math.PI); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  var running = true;
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (e) { running = e[0].isIntersecting; }).observe(canvas);
+  }
+  var t0 = performance.now(), last = 0;
+  function loop(now) {
+    if (running && !document.hidden) { last = (now - t0) / 1000; draw(last); }
+    requestAnimationFrame(loop);
+  }
+  if (reduce) { draw(2.5); window.addEventListener("resize", function () { draw(2.5); }); }
+  else requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
